@@ -29,15 +29,16 @@
   color-scheme:light;
 }
 *{box-sizing:border-box}
-html,body{margin:0}
+html,body{margin:0;overflow-x:hidden;overflow-x:clip}
 body{
   background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:max(20px,env(safe-area-inset-top,0px)) max(28px,env(safe-area-inset-bottom,0px));
-  position:relative;overflow-x:hidden;min-height:100vh;
+  position:relative;min-height:100vh;
 }
 /* фирменные мягкие круги */
+.bgshapes{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
 .blob{position:absolute;border-radius:50%;background:var(--pistachio);opacity:.55;z-index:0;pointer-events:none}
 .blob.a{width:260px;height:260px;right:-120px;top:-90px}
 .blob.b{width:200px;height:200px;left:-120px;top:520px;opacity:.4}
@@ -77,6 +78,29 @@ input{
 input::placeholder{color:var(--muted);opacity:.7}
 input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 22%,transparent)}
 input[aria-invalid="true"]{border-color:var(--error)}
+.consent{flex-direction:row;align-items:flex-start;gap:10px;font-size:13px;font-weight:500;line-height:1.4;color:var(--muted);cursor:pointer}
+.consent input{width:20px;height:20px;flex:none;margin:1px 0 0;padding:0;border:0;border-radius:4px;background:none;accent-color:var(--gold)}
+.consent input:focus{box-shadow:none}
+.consent input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.consent a{color:var(--gold);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.foot a{color:inherit}
+dialog.doc{width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 32px);padding:0;border:1px solid var(--line);border-radius:22px;background:var(--surface);color:var(--ink);display:none;flex-direction:column;overflow:hidden}
+dialog.doc[open]{display:flex}
+dialog.doc::backdrop{background:rgba(30,36,20,.45)}
+.doc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 12px 20px;border-bottom:1px solid var(--line)}
+.doc-head h2{margin:0;font-size:18px;line-height:1.3;font-weight:800;text-wrap:balance}
+.doc-close{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:var(--cream-pill);color:var(--ink);display:grid;place-items:center;cursor:pointer}
+.doc-close svg{width:18px;height:18px}
+.doc-body{overflow-y:auto;padding:14px 20px 8px;font-size:14px;line-height:1.55;-webkit-overflow-scrolling:touch}
+.doc-body p{margin:0 0 10px}
+.doc-body h3{font-size:15px;margin:18px 0 8px}
+.doc-body ol{margin:0 0 10px;padding-left:20px}
+.doc-body li{margin-bottom:8px}
+.doc-body li ol{margin-top:8px}
+.doc-date{color:var(--muted);font-size:13px}
+.doc-foot{padding:12px 20px 16px;border-top:1px solid var(--line)}
+body.modal-open{overflow:hidden}
+.consent.invalid{color:var(--error)}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .btn{
   font:inherit;font-weight:800;font-size:17px;border:0;border-radius:999px;padding:14px 20px;
@@ -123,8 +147,7 @@ input[aria-invalid="true"]{border-color:var(--error)}
 </style>
 </head>
 <body>
-<div class="blob a" aria-hidden="true"></div>
-<div class="blob b" aria-hidden="true"></div>
+<div class="bgshapes" aria-hidden="true"><div class="blob a"></div><div class="blob b"></div></div>
 
 <main class="wrap">
   <div class="logo" role="img" aria-label="ALPO — Сладкий сервис"></div>
@@ -162,9 +185,13 @@ input[aria-invalid="true"]{border-color:var(--error)}
       <div class="hp" aria-hidden="true">
         <label for="f-website">Сайт<input id="f-website" name="website" tabindex="-1" autocomplete="off"></label>
       </div>
+      <label class="consent" for="f-consent" id="consent-label">
+        <input type="checkbox" id="f-consent" name="consent" required>
+        <span>Согласен(на) на обработку моих персональных данных в соответствии с <a href="#consent" data-doc="consent">Согласием на обработку персональных данных</a> и <a href="#privacy" data-doc="policy">Политикой обработки персональных данных</a>.</span>
+      </label>
       <p class="msg" id="msg" role="alert"></p>
       <button class="btn" type="submit" id="submit">Отправить и получить контакт</button>
-      <p class="note">Ваш контакт увижу только я.</p>
+      <p class="note">Ваш контакт увижу только я и не передам третьим лицам.</p>
     </form>
   </section>
 
@@ -186,8 +213,94 @@ input[aria-invalid="true"]{border-color:var(--error)}
     </a>
     <div class="links" id="links"></div>
   </section>
-  <p class="foot">ALPO · Сладкий сервис</p>
+  <p class="foot">ALPO · Сладкий сервис · <a href="#privacy" data-doc="policy">Политика обработки персональных данных</a></p>
 </main>
+
+<!-- Окно с документами -->
+<dialog class="doc" id="doc-dialog" aria-labelledby="doc-title">
+  <div class="doc-head">
+    <h2 id="doc-title"></h2>
+    <button type="button" class="doc-close" id="doc-close" aria-label="Закрыть">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="doc-body" id="doc-body"></div>
+  <div class="doc-foot"><button type="button" class="btn" id="doc-ok">Понятно</button></div>
+</dialog>
+
+<template id="tpl-consent" data-title="Согласие на обработку персональных данных">
+  <p>Настоящим Пользователь, являющийся субъектом персональных данных, подтверждает согласие на обработку персональных данных, предоставленных в сети Интернет на сайте по адресу <span data-f="site"></span> (далее — «Сайт»).</p>
+  <p>Пользователь дает согласие на обработку своих персональных данных оператору: <span data-f="operator"></span> (далее — «Оператор») на следующих условиях:</p>
+  <ol>
+    <li>Принятием (акцептом) настоящего Согласия является проставление Пользователем отметки в поле «Согласен(на) на обработку персональных данных» и нажатие кнопки «Отправить и получить контакт» на Сайте, что приравнивается к даче согласия на обработку персональных данных в соответствии с Политикой обработки персональных данных и Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных».</li>
+    <li>Пользователь дает согласие на обработку своих персональных данных как без использования средств автоматизации, так и с их использованием.</li>
+    <li>Согласие дается на обработку следующих персональных данных: имя (при указании — фамилия); номер телефона; наименование компании, в которой работает Пользователь; должность.</li>
+    <li>Персональные данные обрабатываются Оператором в следующих целях:
+      <ol type="1">
+        <li><b>Обмен контактными данными и установление деловой связи с Пользователем.</b></li>
+        <li><b>Связь с Пользователем</b>: телефонные звонки, сообщения в мессенджерах, направление ответов на запросы, информации о продукции и услугах Оператора (брендированные десерты и торты ALPO), подготовка коммерческих предложений по запросу Пользователя.</li>
+      </ol>
+      <p>Категория персональных данных: общие. Субъекты персональных данных: посетители Сайта.</p>
+      <p>Способы обработки: сбор, запись, систематизация, накопление, хранение, уточнение (обновление, изменение), извлечение, использование, блокирование, удаление, уничтожение.</p>
+      <p>Сроки обработки и хранения: до получения от Пользователя требования о прекращении обработки или отзыва согласия либо до достижения цели обработки.</p>
+      <p>Порядок уничтожения: Оператор удаляет персональные данные из всех мест хранения без возможности восстановления с составлением акта об уничтожении персональных данных.</p>
+    </li>
+    <li>Пользователь уведомлен, что для хранения персональных данных Оператор использует сервис «Google Таблицы» (Google LLC).</li>
+    <li>Согласие действует с момента его принятия до момента его отзыва Пользователем или достижения цели обработки персональных данных. Пользователь в любое время вправе отозвать согласие, направив на адрес <span data-f="email"></span> письмо-уведомление с пометкой «Уведомление об отзыве согласия на обработку персональных данных».</li>
+    <li>В случае отзыва Пользователем согласия на обработку персональных данных Оператор вправе продолжить обработку персональных данных без согласия Пользователя при наличии оснований, указанных в пунктах 2–11 части 1 статьи 6, части 2 статьи 10 и части 2 статьи 11 Федерального закона от 27.07.2006 № 152-ФЗ «О персональных данных».</li>
+    <li>Настоящее Согласие опубликовано в свободном доступе на Сайте.</li>
+  </ol>
+  <p class="doc-date">Редакция от <span data-f="date"></span></p>
+</template>
+
+<template id="tpl-policy" data-title="Политика обработки персональных данных">
+  <p>Настоящая Политика обработки персональных данных (далее — «Политика») определяет общие принципы и порядок обработки персональных данных оператором: <span data-f="operator"></span> (далее — «Оператор») при работе сайта, расположенного по адресу <span data-f="site"></span> (далее — «Сайт»).</p>
+  <p>Предоставление Пользователем персональных данных означает согласие с Политикой и указанными в ней условиями обработки персональных данных. В случае несогласия с этими условиями Пользователь должен воздержаться от предоставления персональных данных через Сайт.</p>
+
+  <h3>1. Термины и определения</h3>
+  <p>1.1. Для целей Политики приведенные ниже термины используются в следующем значении:</p>
+  <p>«Персональные данные» — любая информация, относящаяся прямо или косвенно к определенному или определяемому физическому лицу.</p>
+  <p>«Оператор» — <span data-f="operator"></span>, самостоятельно или совместно с другими лицами организующий и (или) осуществляющий обработку персональных данных, а также определяющий цели обработки, состав персональных данных и действия (операции), совершаемые с ними.</p>
+  <p>«Обработка персональных данных» — сбор, систематизация, хранение, уточнение, использование, передача (предоставление, доступ), а также совершение иных действий, необходимых для достижения целей обработки персональных данных.</p>
+  <p>«Пользователь» — дееспособное физическое лицо, достигшее возраста 18 лет, действующее в своих интересах и от своего имени, использующее Сайт.</p>
+
+  <h3>2. Общие положения</h3>
+  <p>2.1. Сбор персональных данных осуществляется исключительно на добровольной основе. Если Пользователь не хочет, чтобы его персональные данные обрабатывались в соответствии с Политикой, ему не следует их предоставлять.</p>
+  <p>2.2. Оператор не проверяет достоверность персональных данных, предоставляемых Пользователем, и исходит из того, что Пользователь предоставляет достоверную и достаточную информацию о себе.</p>
+
+  <h3>3. Правовое обоснование обработки</h3>
+  <p>3.1. Обработка персональных данных осуществляется с согласия субъекта персональных данных на обработку его персональных данных.</p>
+  <p>3.2. Предоставляя свои персональные данные Оператору, Пользователь подтверждает, что ознакомлен с условиями Политики и дает информированное, сознательное, предметное и однозначное согласие на обработку персональных данных на условиях, изложенных в Политике.</p>
+
+  <h3>4. Цели обработки персональных данных</h3>
+  <p>4.1. Оператор собирает и хранит только те персональные данные, которые необходимы для достижения указанных ниже целей.</p>
+  <p>4.2. Персональные данные обрабатываются Оператором в следующих целях:</p>
+  <p><b>1) Обмен контактными данными и установление деловой связи с Пользователем.</b></p>
+  <p><b>2) Связь с Пользователем</b>: телефонные звонки, сообщения в мессенджерах, направление ответов на запросы, информации о продукции и услугах Оператора, подготовка коммерческих предложений по запросу Пользователя.</p>
+  <p>Перечень обрабатываемых персональных данных: имя (при указании — фамилия), номер телефона, наименование компании, должность.</p>
+  <p>Категория: общие. Субъекты персональных данных: посетители Сайта.</p>
+  <p>Способы обработки и хранения: сбор, запись, систематизация, накопление, хранение, уточнение (обновление, изменение), извлечение, использование, блокирование, удаление, уничтожение.</p>
+  <p>Сроки обработки и хранения: до получения от Пользователя требования о прекращении обработки или отзыва согласия либо до достижения цели обработки.</p>
+  <p>Порядок уничтожения: Оператор удаляет персональные данные из всех мест хранения без возможности восстановления с составлением акта об уничтожении персональных данных.</p>
+
+  <h3>5. Условия обработки и передачи третьим лицам</h3>
+  <p>5.1. В отношении персональных данных Пользователя сохраняется их конфиденциальность.</p>
+  <p>5.2. Оператор не передает персональные данные третьим лицам, за исключением случаев, предусмотренных законодательством Российской Федерации. Для хранения персональных данных Оператор использует сервис «Google Таблицы» (Google LLC); доступ к таблице имеет только Оператор.</p>
+  <p>5.3. Обработка персональных данных Пользователя осуществляется с момента их предоставления через Сайт и до момента отзыва согласия или достижения цели обработки, с использованием средств автоматизации или без использования таких средств.</p>
+  <p>5.4. При утрате или разглашении персональных данных Оператор информирует об этом Пользователя, в течение 24 часов после инцидента уведомляет Роскомнадзор и в течение 72 часов проводит собственное расследование и уведомляет Роскомнадзор о его результатах.</p>
+  <p>5.5. Оператор принимает необходимые организационные и технические меры для защиты персональных данных Пользователя от неправомерного или случайного доступа, уничтожения, изменения, блокирования, копирования, распространения, а также от иных неправомерных действий третьих лиц.</p>
+
+  <h3>6. Порядок отзыва согласия</h3>
+  <p>6.1. Пользователь в любой момент может отозвать согласие, направив на адрес <span data-f="email"></span> письмо-уведомление с пометкой «Уведомление об отзыве согласия на обработку персональных данных».</p>
+  <p>6.2. Оператор прекращает обработку персональных данных в течение 1 (одного) рабочего дня с момента получения уведомления.</p>
+
+  <h3>7. Дополнительные условия</h3>
+  <p>7.1. Оператор вправе вносить изменения в Политику без согласия Пользователя.</p>
+  <p>7.2. Новая редакция Политики вступает в силу с момента ее размещения на Сайте, если иное не предусмотрено новой редакцией Политики.</p>
+  <p>7.3. Предложения и вопросы по Политике следует направлять на электронную почту <span data-f="email"></span>.</p>
+  <p>7.4. Действующая Политика опубликована в свободном доступе на Сайте.</p>
+  <p class="doc-date">Редакция от <span data-f="date"></span></p>
+</template>
 
 <script>
 /* ============================================================
@@ -207,6 +320,14 @@ const CONFIG = {
   website: "",
   vcardFile: "polina.vcf",     // файл контакта рядом с index.html
   photo: "data:image/jpeg;base64,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", // фото Полины
+
+  // Реквизиты для Согласия и Политики обработки персональных данных
+  legal: {
+    operator: "Общество с ограниченной ответственностью «Альпо» (ООО «Альпо»), ОГРН 1267700209644, ИНН 9734026658, адрес: 123592, г. Москва, ул. Исаковского, д. 12, к. 2, кв. 294",
+    email: "krystall.label@gmail.com",
+    site: "https://alpo-contact.github.io",
+    date: "24.10.2026"
+  },
 
   // Метка мероприятия — попадёт в таблицу отдельной колонкой
   event: ""
@@ -301,6 +422,32 @@ if (CONFIG.website)  addLink(CONFIG.website, "web", "Сайт");
 const ls = $("links").children;
 if (ls.length % 2 === 1) ls[ls.length - 1].classList.add("wide");
 
+/* Документы: Согласие и Политика в окне */
+const dlg = $("doc-dialog");
+function openDoc(kind){
+  const tpl = $(kind === "consent" ? "tpl-consent" : "tpl-policy");
+  $("doc-title").textContent = tpl.dataset.title;
+  const body = $("doc-body");
+  body.replaceChildren(tpl.content.cloneNode(true));
+  body.querySelectorAll("[data-f]").forEach(el => { el.textContent = CONFIG.legal[el.dataset.f] || ""; });
+  body.scrollTop = 0;
+  if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
+  document.body.classList.add("modal-open");
+}
+function closeDoc(){
+  if (typeof dlg.close === "function") dlg.close(); else dlg.removeAttribute("open");
+}
+dlg.addEventListener("close", () => document.body.classList.remove("modal-open"));
+$("doc-close").addEventListener("click", closeDoc);
+$("doc-ok").addEventListener("click", closeDoc);
+dlg.addEventListener("click", (e) => { if (e.target === dlg) closeDoc(); }); // клик по затемнению
+document.querySelectorAll("[data-doc]").forEach(a => a.addEventListener("click", (e) => {
+  e.preventDefault(); e.stopPropagation(); // не переключать галочку
+  openDoc(a.dataset.doc);
+}));
+if (location.hash === "#privacy") openDoc("policy");
+if (location.hash === "#consent") openDoc("consent");
+
 /* Отправка формы */
 const form = $("form"), msg = $("msg"), btn = $("submit");
 function showDone(name){
@@ -317,6 +464,9 @@ form.addEventListener("submit", async (e) => {
   const digits = phone.value.replace(/\D/g, "");
   if (!name.value.trim()) { name.setAttribute("aria-invalid","true"); msg.textContent = "Напишите, как вас зовут."; name.focus(); return; }
   if (digits.length < 10) { phone.setAttribute("aria-invalid","true"); msg.textContent = "Проверьте номер: нужно минимум 10 цифр."; phone.focus(); return; }
+  const consent = $("f-consent");
+  $("consent-label").classList.remove("invalid");
+  if (!consent.checked) { $("consent-label").classList.add("invalid"); msg.textContent = "Отметьте согласие на обработку данных."; consent.focus(); return; }
   if ($("f-website").value) { showDone(name.value.trim()); return; } // ловушка для ботов
 
   const data = new URLSearchParams({
