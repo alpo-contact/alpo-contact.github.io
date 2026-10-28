@@ -174,10 +174,10 @@ body.modal-open{overflow:hidden}
         <input id="f-name" name="name" autocomplete="name" required maxlength="100" placeholder="Анна Смирнова">
       </label>
       <label for="f-company">Компания
-        <input id="f-company" name="company" autocomplete="organization" maxlength="120" placeholder="ООО «Пример»">
+        <input id="f-company" name="company" autocomplete="organization" required maxlength="120" placeholder="ООО «Пример»">
       </label>
       <label for="f-position">Должность
-        <input id="f-position" name="position" autocomplete="organization-title" maxlength="120" placeholder="HR-директор">
+        <input id="f-position" name="position" autocomplete="organization-title" required maxlength="120" placeholder="HR-директор">
       </label>
       <label for="f-phone">Телефон
         <input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required maxlength="25" placeholder="+7 900 000-00-00">
@@ -324,7 +324,7 @@ const CONFIG = {
   // Реквизиты для Согласия и Политики обработки персональных данных
   legal: {
     operator: "Общество с ограниченной ответственностью «Альпо» (ООО «Альпо»), ОГРН 1267700209644, ИНН 9734026658, адрес: 123592, г. Москва, ул. Исаковского, д. 12, к. 2, кв. 294",
-    email: "krystall.label@gmail.com",
+    email: "alpo_service@mail.ru",
     site: "https://alpo-contact.github.io",
     date: "24.10.2026"
   },
@@ -460,9 +460,12 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   msg.textContent = "";
   const name = $("f-name"), phone = $("f-phone");
-  [name, phone].forEach(i => i.removeAttribute("aria-invalid"));
+  const company = $("f-company"), position = $("f-position");
+  [name, company, position, phone].forEach(i => i.removeAttribute("aria-invalid"));
   const digits = phone.value.replace(/\D/g, "");
   if (!name.value.trim()) { name.setAttribute("aria-invalid","true"); msg.textContent = "Напишите, как вас зовут."; name.focus(); return; }
+  if (!company.value.trim()) { company.setAttribute("aria-invalid","true"); msg.textContent = "Укажите компанию."; company.focus(); return; }
+  if (!position.value.trim()) { position.setAttribute("aria-invalid","true"); msg.textContent = "Укажите должность."; position.focus(); return; }
   if (digits.length < 10) { phone.setAttribute("aria-invalid","true"); msg.textContent = "Проверьте номер: нужно минимум 10 цифр."; phone.focus(); return; }
   const consent = $("f-consent");
   $("consent-label").classList.remove("invalid");
